@@ -19,7 +19,7 @@ This code still uses a bvh tree. Except we cudaMallocManage all of the nodes so 
 Calculating the initial rays to cast into the scene is the first step of the ray tracer. I was able to accelerate this on the GPU
 by creating a large array in global memory of size width*height of the frame and passing a pointer of it to my cuda kernel. By indexing into this array we can figure out what pixel corresponds to that index.
 
-But first need to figure out what index a given thread block and individual thread maps to. This picture from Nvidia's website describes this well
+But first need to figure out what index a given thread block and individual thread maps to. This picture from Nvidia's website describes this well.
 
 ![alt text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/cuda_indexing.png)
 
