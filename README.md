@@ -1,24 +1,27 @@
 # CudaRayTracer
 GPU Accelerated Ray Tracer using CUDA and C++
 
+
+![alt text](https://raw.githubusercontent.com/boonemiller/Ray-Tracer/master/RayTracer/16AA.bmp)
+
 ## Introduction
 
-I used cuda with a NVIDIA GTX 960 graphics card to implement a GPU accelerated Ray Tracer. This README decribes the parts
+I used cuda with a NVIDIA GTX 960 graphics card to implement a GPU accelerated Ray Tracer. This README describes the parts
 of the Ray Tracer that I accelerated. This was just taking my CPU implementation, which can be found on my profile, and adding cuda to it, with some small changes to the design.
 
 ### BVH Tree
 
-This code still uses a bvh tree. Except we cudaMallocManage all of the nodes so that they are in global memory so we have access to them on the gpu.
+This code still uses a bvh tree. Except we cudaMallocManage all of the nodes so that they are in global memory so we have access to them on the GPU.
 
 
 ### Accelerating Primary Ray Generation
 
-Calculating the intital rays to cast into the scene is the first step of the ray tracer. I was able to accelerate this on the GPU
+Calculating the initial rays to cast into the scene is the first step of the ray tracer. I was able to accelerate this on the GPU
 by creating a large array in global memory of size width*height of the frame and passing a pointer of it to my cuda kernel. By indexing into this array we can figure out what pixel corresponds to that index.
 
 But first need to figure out what index a given thread block and individual thread maps to. This picture from Nvidia's website describes this well
 
-
+![alt text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/cuda_indexing.png)
 
 A thread block is made up of some number of threads. In this example a thread block is made up of 256 threads.
 So to index into an array we can just take what block number the thread belongs to, how many threads per block, and the number of the thread in that block.
@@ -44,13 +47,18 @@ When we find an intersection, we make an intersection point with relevant inform
 ### Accelerating Shading
 
 From our Ray Intersection function we get a bunch of intersections we can calculating the shading value of. We just use phong shading
-with the light information. When testing shadow rays, we call the same bvh traversal device(gpu) function as we did with Ray Intersection.
+with the light information. When testing shadow rays, we call the same bvh traversal device(GPU) function as we did with Ray Intersection.
 
+### Results
+
+Initial results show significant improvement over my multi threaded implementation. On a simple scene, it showed 3-4X improvement/
 
 ### Future Improvements
+
+Shared Memory- Try to bring the memory closer to the processing by using shared memory
 
 Ray Sorting- GPU caches are small, so ray sorting would possibly increase cache hits by processing rays sequentially that might access
 the same parts of the bvh tree. So possibly the scene objects would already be in the cache.
 
 Find something for the CPU to do- right now all of the work is being done on the GPU. This results on the CPU just waiting there until the GPU finishes.
-I tried doing Ray sorting on the CPU while the GPU is doing phong shading, but the gpu returned faster than the cpu could finsih sorting, resulting is slower overall execution.  
+I tried doing Ray sorting on the CPU while the GPU is doing phong shading, but the GPU returned faster than the cpu could finish sorting, resulting is slower overall execution. 
