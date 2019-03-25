@@ -40,7 +40,7 @@ Now we just do the math to determine the ray we are casting into the scene and p
 ### Accelerating Ray Intersection
 
 This is done exactly like Primary Ray Generation where we index into that global array. When we index into that array
-we get a ray that we can determine the intersection point of. Now unlike a CPU implementation we can have thousands of threads working on different rays
+we get a ray that we can determine the intersection point of. Now, unlike a CPU implementation, we can have thousands of threads working on different rays
 at the same time, instead of just a few threads. The Ray Intersection function uses a bvh tree traversal function that is located on the GPU.
 When we find an intersection, we make an intersection point with relevant information and put it in an array at that same index.
 
