@@ -35,7 +35,7 @@ If our frame is 720X360. This can simply be done by saying
 row = index/720
 col = index%720
 
-Now we just do the math to determine the ray we are casting into the scene and put it at that index to be used later
+Now we just do the math to determine the ray we are casting into the scene and put it at that index to be used later.
 
 ### Accelerating Ray Intersection
 
