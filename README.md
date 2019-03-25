@@ -51,7 +51,7 @@ with the light information. When testing shadow rays, we call the same bvh trave
 
 ### Results
 
-Initial results show significant improvement over my multi threaded implementation. On a simple scene, it showed 3-4X improvement/
+Initial results show significant improvement over my CPU multi-threaded implementation. On a simple scene, it showed 3-4X improvement on the runtime. More testing would need to be done to see how performance scales as more rays and more objects increases.
 
 ### Future Improvements
 
@@ -61,4 +61,6 @@ Ray Sorting- GPU caches are small, so ray sorting would possibly increase cache 
 the same parts of the bvh tree. So possibly the scene objects would already be in the cache.
 
 Find something for the CPU to do- right now all of the work is being done on the GPU. This results on the CPU just waiting there until the GPU finishes.
-I tried doing Ray sorting on the CPU while the GPU is doing phong shading, but the GPU returned faster than the cpu could finish sorting, resulting is slower overall execution. 
+I tried doing Ray sorting on the CPU while the GPU is doing phong shading, but the GPU returned faster than the CPU could finish sorting, resulting is slower overall execution. 
+
+Re-implement Area Lights- I implemented soft shadows using area lights on the CPU, but haven't extended it to my GPU implementation yet.  
