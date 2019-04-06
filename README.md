@@ -3,7 +3,7 @@ GPU Accelerated Ray Tracer using CUDA and C++
 
 ![alt_text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/teapotReflection.bmp)
 
-1024 triangles, rendered on GPU with cuda
+1024 triangles, accelerated ray tracing on GPU with cuda
 
 ## Introduction
 
