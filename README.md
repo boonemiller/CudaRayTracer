@@ -2,6 +2,9 @@
 GPU Accelerated Ray Tracer using CUDA and C++
 
 ![alt_text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/teapotReflection.bmp)
+
+1024 triangles, rendered on GPU with cuda
+
 ## Introduction
 
 I used cuda with a NVIDIA GTX 960 graphics card to implement a GPU accelerated Ray Tracer. This README describes the parts
@@ -49,7 +52,11 @@ with the light information. When testing shadow rays, we call the same bvh trave
 
 ### Results
 
-Initial results show significant improvement over my CPU multi-threaded implementation. On a simple scene, it showed 3-4X improvement on the runtime. More testing would need to be done to see how performance scales as more rays and more objects increases.
+Initial results show significant improvement over my CPU multi-threaded implementation. On a simple scene, it showed 3-4X improvement on the runtime. On the teapot scene it showed 5-10X speed up depending on the relfection options. More testing would need to be done to see how performance scales as more rays and more objects increases.
+
+![alt_text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/teapotNoReflection.bmp)
+
+Teapot (1024 triangles) with no reflection rays, rendered in 17 frames/second
 
 ### Future Improvements
 
