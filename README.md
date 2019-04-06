@@ -1,9 +1,7 @@
 # CudaRayTracer
 GPU Accelerated Ray Tracer using CUDA and C++
 
-
-![alt text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/teapotReflection.bmp)
-
+![alt_text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/teapotReflection.bmp)
 ## Introduction
 
 I used cuda with a NVIDIA GTX 960 graphics card to implement a GPU accelerated Ray Tracer. This README describes the parts
