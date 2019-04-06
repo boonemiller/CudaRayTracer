@@ -15,19 +15,19 @@ class Node
 public:
     Node* left;
     Node* right;
-    bool isleaf = false;
-    SceneObject objs[3];
+    bool isleaf;
+    SceneObject objs[6];
     int numObjs;
     //some bounding box variables
-    double minX;
-    double maxX;
-    double minY;
-    double maxY;
-    double minZ;
-    double maxZ;
+    float minX;
+    float maxX;
+    float minY;
+    float maxY;
+    float minZ;
+    float maxZ;
     
-    double midpoint;
-    double longestAxis;
+    float midpoint;
+    float longestAxis;
 };
 
 Node* constructTree(std::vector<SceneObject>& objects, Node* currentNode);

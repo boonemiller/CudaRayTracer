@@ -9,7 +9,7 @@
 #include <limits>
 Node* constructTree(std::vector<SceneObject>& objects, Node* currentNode)
 {
-    if(objects.size() <= 3)
+    if(objects.size() <= 6)
     {
         for(int i = 0; i<objects.size();i++)
         {
@@ -26,7 +26,7 @@ Node* constructTree(std::vector<SceneObject>& objects, Node* currentNode)
     newLeftNode->right = NULL;
     newLeftNode->isleaf = false;
 
-    Node* newRightNode = (Node *) malloc(sizeof(Node));
+    Node* newRightNode;
     cudaMallocManaged(&newRightNode,sizeof(Node));
     newRightNode->left = NULL;
     newRightNode->right = NULL;
@@ -50,42 +50,144 @@ Node* constructTree(std::vector<SceneObject>& objects, Node* currentNode)
     std::vector<SceneObject> rightObjects;
     for(int i = 0; i < objects.size(); i++)
     {
-        
-        if(objects[i].position[currentNode->longestAxis] < currentNode->midpoint)
+        float objmidpoint;
+        if(objects[i].sphere)
+            objmidpoint = objects[i].position[currentNode->longestAxis];
+        else
         {
-            if(objects[i].position[0]-objects[i].radius < minLeftX)
-                minLeftX = objects[i].position[0]-objects[i].radius;
-            if(objects[i].position[1]-objects[i].radius < minLeftY)
-                minLeftY = objects[i].position[1]-objects[i].radius;
-            if(objects[i].position[2]-objects[i].radius < minLeftZ)
-                minLeftZ = objects[i].position[2]-objects[i].radius;
-            
-            if(objects[i].position[0]+objects[i].radius > maxLeftX)
-                maxLeftX = objects[i].position[0]+objects[i].radius;
-            if(objects[i].position[1]+objects[i].radius > maxLeftY)
-                maxLeftY = objects[i].position[1]+objects[i].radius;
-            if(objects[i].position[2]+objects[i].radius > maxLeftZ)
-                maxLeftZ = objects[i].position[2]+objects[i].radius;
-            
-            midLeft += objects[i].position;
+            objmidpoint = (objects[i].v1[currentNode->longestAxis]+objects[i].v2[currentNode->longestAxis]+objects[i].v3[currentNode->longestAxis])/3.0f;
+        }
+        
+        if(objmidpoint <= currentNode->midpoint)
+        {
+            if(objects[i].sphere)
+            {
+                if(objects[i].position[0]-objects[i].radius < minLeftX)
+                    minLeftX = objects[i].position[0]-objects[i].radius;
+                if(objects[i].position[1]-objects[i].radius < minLeftY)
+                    minLeftY = objects[i].position[1]-objects[i].radius;
+                if(objects[i].position[2]-objects[i].radius < minLeftZ)
+                    minLeftZ = objects[i].position[2]-objects[i].radius;
+                
+                if(objects[i].position[0]+objects[i].radius > maxLeftX)
+                    maxLeftX = objects[i].position[0]+objects[i].radius;
+                if(objects[i].position[1]+objects[i].radius > maxLeftY)
+                    maxLeftY = objects[i].position[1]+objects[i].radius;
+                if(objects[i].position[2]+objects[i].radius > maxLeftZ)
+                    maxLeftZ = objects[i].position[2]+objects[i].radius;
+                midLeft += objects[i].position;
+            }
+            else if(objects[i].triangle)
+            {
+                if(objects[i].v1[0] < minLeftX)
+                    minLeftX = objects[i].v1[0];
+                if(objects[i].v1[1] < minLeftY)
+                    minLeftY = objects[i].v1[1];
+                if(objects[i].v1[2] < minLeftZ)
+                    minLeftZ = objects[i].v1[2];
+                
+                if(objects[i].v1[0] > maxLeftX)
+                    maxLeftX = objects[i].v1[0];
+                if(objects[i].v1[1] > maxLeftY)
+                    maxLeftY = objects[i].v1[1];
+                if(objects[i].v1[2] > maxLeftZ)
+                    maxLeftZ = objects[i].v1[2];
+                
+                if(objects[i].v2[0] < minLeftX)
+                    minLeftX = objects[i].v2[0];
+                if(objects[i].v2[1] < minLeftY)
+                    minLeftY = objects[i].v2[1];
+                if(objects[i].v2[2] < minLeftZ)
+                    minLeftZ = objects[i].v2[2];
+                
+                if(objects[i].v2[0] > maxLeftX)
+                    maxLeftX = objects[i].v2[0];
+                if(objects[i].v2[1] > maxLeftY)
+                    maxLeftY = objects[i].v2[1];
+                if(objects[i].v2[2] > maxLeftZ)
+                    maxLeftZ = objects[i].v2[2];
+                
+                if(objects[i].v3[0] < minLeftX)
+                    minLeftX = objects[i].v3[0];
+                if(objects[i].v3[1] < minLeftY)
+                    minLeftY = objects[i].v3[1];
+                if(objects[i].v3[2] < minLeftZ)
+                    minLeftZ = objects[i].v3[2];
+                
+                if(objects[i].v3[0] > maxLeftX)
+                    maxLeftX = objects[i].v3[0];
+                if(objects[i].v3[1] > maxLeftY)
+                    maxLeftY = objects[i].v3[1];
+                if(objects[i].v3[2] > maxLeftZ)
+                    maxLeftZ = objects[i].v3[2];
+                midLeft += glm::vec3((objects[i].v1[0]+objects[i].v2[0]+objects[i].v3[0])/3.0f,(objects[i].v1[1]+objects[i].v2[1]+objects[i].v3[1])/3.0f,(objects[i].v1[2]+objects[i].v2[2]+objects[i].v3[2])/3.0f);
+            }
             leftObjects.push_back(objects[i]);
         }
         else
         {
-            if(objects[i].position[0]-objects[i].radius < minRightX)
-                minRightX = objects[i].position[0]-objects[i].radius;
-            if(objects[i].position[1]-objects[i].radius < minRightY)
-                minRightY = objects[i].position[1]-objects[i].radius;
-            if(objects[i].position[2]-objects[i].radius < minRightZ)
-                minRightZ = objects[i].position[2]-objects[i].radius;
-            
-            if(objects[i].position[0]+objects[i].radius > maxRightX)
-                maxRightX = objects[i].position[0]+objects[i].radius;
-            if(objects[i].position[1]+objects[i].radius > maxRightY)
-                maxRightY = objects[i].position[1]+objects[i].radius;
-            if(objects[i].position[2]+objects[i].radius > maxRightZ)
-                maxRightZ = objects[i].position[2]+objects[i].radius;
-            midRight += objects[i].position;
+            if(objects[i].sphere)
+            {
+                if(objects[i].position[0]-objects[i].radius < minRightX)
+                    minRightX = objects[i].position[0]-objects[i].radius;
+                if(objects[i].position[1]-objects[i].radius < minRightY)
+                    minRightY = objects[i].position[1]-objects[i].radius;
+                if(objects[i].position[2]-objects[i].radius < minRightZ)
+                    minRightZ = objects[i].position[2]-objects[i].radius;
+                
+                if(objects[i].position[0]+objects[i].radius > maxRightX)
+                    maxRightX = objects[i].position[0]+objects[i].radius;
+                if(objects[i].position[1]+objects[i].radius > maxRightY)
+                    maxRightY = objects[i].position[1]+objects[i].radius;
+                if(objects[i].position[2]+objects[i].radius > maxRightZ)
+                    maxRightZ = objects[i].position[2]+objects[i].radius;
+                midRight += objects[i].position;
+            }
+            else if(objects[i].triangle)
+            {
+                if(objects[i].v1[0] < minRightX)
+                    minRightX = objects[i].v1[0];
+                if(objects[i].v1[1] < minRightY)
+                    minRightY = objects[i].v1[1];
+                if(objects[i].v1[2] < minRightZ)
+                    minRightZ = objects[i].v1[2];
+                
+                if(objects[i].v1[0] > maxRightX)
+                    maxRightX = objects[i].v1[0];
+                if(objects[i].v1[1] > maxRightY)
+                    maxRightY = objects[i].v1[1];
+                if(objects[i].v1[2] > maxRightZ)
+                    maxRightZ = objects[i].v1[2];
+                
+                if(objects[i].v2[0] < minRightX)
+                    minRightX = objects[i].v2[0];
+                if(objects[i].v2[1] < minRightY)
+                    minRightY = objects[i].v2[1];
+                if(objects[i].v2[2] < minRightZ)
+                    minRightZ = objects[i].v2[2];
+                
+                if(objects[i].v2[0] > maxRightX)
+                    maxRightX = objects[i].v2[0];
+                if(objects[i].v2[1] > maxRightY)
+                    maxRightY = objects[i].v2[1];
+                if(objects[i].v2[2] > maxRightZ)
+                    maxRightZ = objects[i].v2[2];
+                
+                if(objects[i].v3[0] < minRightX)
+                    minRightX = objects[i].v3[0];
+                if(objects[i].v3[1] < minRightY)
+                    minRightY = objects[i].v3[1];
+                if(objects[i].v3[2] < minRightZ)
+                    minRightZ = objects[i].v3[2];
+                
+                if(objects[i].v3[0] > maxRightX)
+                    maxRightX = objects[i].v3[0];
+                if(objects[i].v3[1] > maxRightY)
+                    maxRightY = objects[i].v3[1];
+                if(objects[i].v3[2] > maxRightZ)
+                    maxRightZ = objects[i].v3[2];
+                midRight += glm::vec3((objects[i].v1[0]+objects[i].v2[0]+objects[i].v3[0])/3.0f,(objects[i].v1[1]+objects[i].v2[1]+objects[i].v3[1])/3.0f,(objects[i].v1[2]+objects[i].v2[2]+objects[i].v3[2])/3.0f);
+            }
             rightObjects.push_back(objects[i]);
         }
     }

@@ -40,6 +40,13 @@ public:
     glm::vec3 center;
     float shininess;
     bool sphere;
+    bool triangle;
+    glm::vec3 v1;
+    glm::vec3 v1Norm;
+    glm::vec3 v2;
+    glm::vec3 v2Norm;
+    glm::vec3 v3;
+    glm::vec3 v3Norm;
 };
 
 #endif /* SceneObjects_hpp */

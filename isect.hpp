@@ -11,7 +11,6 @@
 #include "SceneObjects.hpp"
 class Isect{
 public:
-    bool isected;
     glm::vec3 isectPoint;
     glm::vec3 incidentDirection;
     glm::vec3 reflectionCoef;

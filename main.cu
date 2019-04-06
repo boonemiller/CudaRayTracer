@@ -17,18 +17,67 @@
 #include "stb_image_write.h"
 #include <chrono>
 #include "bvh.hpp"
+#include "objloader.hpp"
 
 int main(int argc, const char * argv[]) {
-
-    
-	printf("HELOOOO?????\n");
-
     //*******Manually describing scene************
     float width = 720;
     float height = 360;
     std::vector<SceneObject> scene;
     
-    SceneObject s1;
+    std::vector< glm::vec3 > vertices;
+    std::vector< glm::vec2 > uvs;
+    std::vector< glm::vec3 > normals; // Won't be used at the moment.
+    bool res = loadOBJ("teapot3.obj", vertices, uvs, normals);
+    for(int i = 0;i<3072;i+=3)
+    {
+        SceneObject s1;
+        s1.objNum = i;
+        s1.radius = 0;
+        s1.ambient = glm::vec3(0,0,1);
+        s1.specular = glm::vec3(0.9,0.4,0);
+        s1.diffuse = glm::vec3(0.8,0.3,0.1);
+        s1.center = glm::vec3(0,0,0);
+        s1.position = s1.center;
+        
+        s1.v1 = vertices[i];
+        s1.v1Norm = glm::normalize(normals[i]);
+        s1.v2 = vertices[i+1];
+        s1.v2Norm = glm::normalize(normals[i+1]);
+        s1.v3 = vertices[i+2];
+        s1.v3Norm = glm::normalize(normals[i+2]);
+        s1.shininess = 64;
+        s1.reflective = glm::vec3(.5,.5,.5);
+        s1.triangle = true;
+        s1.sphere = false;
+        
+        scene.push_back(s1);
+    }
+
+    /*SceneObject s1;
+    s1.objNum = 1;
+    s1.radius = 0;
+    s1.ambient = glm::vec3(0,0,1);
+    s1.specular = glm::vec3(0.9,0.4,0);
+    s1.diffuse = glm::vec3(0.8,0.3,0.1);
+    s1.center = glm::vec3(0,0,0);
+    s1.position = s1.center;
+    
+    s1.v1 = glm::vec3(-2,0,0);
+    s1.v1Norm = glm::vec3(0,0,1);
+    s1.v2 = glm::vec3(0,2,0);
+    s1.v2Norm =  glm::vec3(0,0,1);
+    s1.v3 = glm::vec3(2,0,0);
+    s1.v3Norm =  glm::vec3(0,0,1);
+    //printf("%f %f %f\n",s1.v1Norm[0],s1.v1Norm[1],s1.v1Norm[2]);
+    s1.shininess = 64;
+    s1.reflective = glm::vec3(.5,.5,.5);
+    s1.triangle = true;
+    s1.sphere = false;
+    scene.push_back(s1)
+    
+    
+    /*SceneObject s1;
     s1.objNum = 0;
     s1.radius = 1.0;
     s1.ambient = glm::vec3(0,0,1);
@@ -132,7 +181,7 @@ int main(int argc, const char * argv[]) {
     s8.sphere = true;
     scene.push_back(s8);
     
-    /*SceneObject s9;
+    SceneObject s9;
     s9.objNum = 8;
     s9.radius = .75;
     s9.ambient = glm::vec3(.9,.9,.9);
@@ -184,7 +233,6 @@ int main(int argc, const char * argv[]) {
     s12.sphere = true;
     scene.push_back(s12);*/
     
-    glm::vec3 cameraPosition = glm::vec3(0,4,12);
     glm::vec3 cameraDirection = glm::vec3(0,0,0);
     //************************************
     
@@ -192,7 +240,7 @@ int main(int argc, const char * argv[]) {
     //**************Adding Lights*****************
     std::vector<Light> lights;
     Light l1;
-    l1.direction = glm::vec3(0, -1, 0);
+    l1.direction = glm::vec3(2, -1, -1);
     l1.color = glm::vec3(1.0, 1.0, 1.0);
     l1.point = false;
     l1.area = false;
@@ -206,15 +254,15 @@ int main(int argc, const char * argv[]) {
     l2.constantTerm = 0.25f;
     l2.linearTerm = 0.003372407f;
     l2.quadraticTerm = 0.000045492f;
-    lights.push_back(l2);
+    //lights.push_back(l2);
     
     
     Light l3;
-    l3.direction = glm::vec3(0,1,0);
-    l3.color = glm::vec3(0.2,0.2,0.2);
+    l3.direction = glm::vec3(-2,-1,1);
+    l3.color = glm::vec3(1,1,1);
     l3.point = false;
     l3.area = false;
-    lights.push_back(l3);
+    //lights.push_back(l3);
     
     //area light
     /*Light l4;
@@ -242,19 +290,67 @@ int main(int argc, const char * argv[]) {
     //creates world bounding box information, includes all the objects
     for(SceneObject obj: scene)
     {
-        if(obj.position[0]-obj.radius < cudaRoot->minX)
-            cudaRoot->minX = obj.position[0]-obj.radius;
-        if(obj.position[1]-obj.radius < cudaRoot->minY)
-            cudaRoot->minY = obj.position[1]-obj.radius;
-        if(obj.position[2]-obj.radius < cudaRoot->minZ)
-            cudaRoot->minZ = obj.position[2]-obj.radius;
+        if(obj.sphere)
+        {
+            if(obj.position[0]-obj.radius < cudaRoot->minX)
+                cudaRoot->minX = obj.position[0]-obj.radius;
+            if(obj.position[1]-obj.radius < cudaRoot->minY)
+                cudaRoot->minY = obj.position[1]-obj.radius;
+            if(obj.position[2]-obj.radius < cudaRoot->minZ)
+                cudaRoot->minZ = obj.position[2]-obj.radius;
         
-        if(obj.position[0]+obj.radius > cudaRoot->maxX)
-            cudaRoot->maxX = obj.position[0]+obj.radius;
-        if(obj.position[1]+obj.radius > cudaRoot->maxY)
-            cudaRoot->maxY = obj.position[1]+obj.radius;
-        if(obj.position[2]+obj.radius > cudaRoot->maxZ)
-            cudaRoot->maxZ = obj.position[2]+obj.radius;
+            if(obj.position[0]+obj.radius > cudaRoot->maxX)
+                cudaRoot->maxX = obj.position[0]+obj.radius;
+            if(obj.position[1]+obj.radius > cudaRoot->maxY)
+                cudaRoot->maxY = obj.position[1]+obj.radius;
+            if(obj.position[2]+obj.radius > cudaRoot->maxZ)
+                cudaRoot->maxZ = obj.position[2]+obj.radius;
+        }
+        else if(obj.triangle)
+        {
+            if(obj.v1[0] < cudaRoot->minX)
+                cudaRoot->minX = obj.v1[0];
+            if(obj.v1[1] < cudaRoot->minY)
+                cudaRoot->minY = obj.v1[1];
+            if(obj.v1[2] < cudaRoot->minZ)
+                cudaRoot->minZ = obj.v1[2];
+            
+            if(obj.v1[0] > cudaRoot->maxX)
+                cudaRoot->maxX = obj.v1[0];
+            if(obj.v1[1] > cudaRoot->maxY)
+                cudaRoot->maxY = obj.v1[1];
+            if(obj.v1[2] > cudaRoot->maxZ)
+                cudaRoot->maxZ = obj.v1[2];
+            
+            if(obj.v2[0] < cudaRoot->minX)
+                cudaRoot->minX = obj.v2[0];
+            if(obj.v2[1] < cudaRoot->minY)
+                cudaRoot->minY = obj.v2[1];
+            if(obj.v2[2] < cudaRoot->minZ)
+                cudaRoot->minZ = obj.v2[2];
+            
+            if(obj.v2[0] > cudaRoot->maxX)
+                cudaRoot->maxX = obj.v2[0];
+            if(obj.v2[1] > cudaRoot->maxY)
+                cudaRoot->maxY = obj.v2[1];
+            if(obj.v2[2] > cudaRoot->maxZ)
+                cudaRoot->maxZ = obj.v2[2];
+            
+            if(obj.v3[0] < cudaRoot->minX)
+                cudaRoot->minX = obj.v3[0];
+            if(obj.v3[1] < cudaRoot->minY)
+                cudaRoot->minY = obj.v3[1];
+            if(obj.v3[2] < cudaRoot->minZ)
+                cudaRoot->minZ = obj.v3[2];
+            
+            if(obj.v3[0] > cudaRoot->maxX)
+                cudaRoot->maxX = obj.v3[0];
+            if(obj.v3[1] > cudaRoot->maxY)
+                cudaRoot->maxY = obj.v3[1];
+            if(obj.v3[2] > cudaRoot->maxZ)
+                cudaRoot->maxZ = obj.v3[2];
+        }
+        
     }
     
     if(cudaRoot->maxX-cudaRoot->minX > cudaRoot->maxY-cudaRoot->minY)
@@ -281,8 +377,7 @@ int main(int argc, const char * argv[]) {
             cudaRoot->midpoint = (cudaRoot->maxZ+cudaRoot->minZ)/2;
         }
     }
-    //Node* root = (Node*)malloc(sizeof(Node));
-    
+    glm::vec3 cameraPosition = glm::vec3(0,cudaRoot->maxY+20,cudaRoot->maxZ+200);
     constructTree(scene, cudaRoot);
     
     
@@ -347,7 +442,6 @@ int main(int argc, const char * argv[]) {
         std::cout << "AVG Trace Time: "
         << t/1000000 << " seconds\n" << std::endl;
         stbi_write_bmp("./fb.bmp", w, h, 3, pix);
-        //system("open /tmp/fb.bmp");
     }
     
     return 0;
