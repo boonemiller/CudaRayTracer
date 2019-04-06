@@ -2,7 +2,7 @@
 GPU Accelerated Ray Tracer using CUDA and C++
 
 
-![alt text](https://raw.githubusercontent.com/boonemiller/Ray-Tracer/master/RayTracer/16AA.bmp)
+![alt text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/teapotReflection.bmp)
 
 ## Introduction
 
