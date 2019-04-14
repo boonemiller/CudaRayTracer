@@ -7,7 +7,7 @@ GPU Accelerated Ray Tracer using CUDA and C++
 
 ## Introduction
 
-I used cuda with a NVIDIA GTX 960 graphics card to implement a GPU accelerated Ray Tracer. This README describes the parts
+I used cuda with a NVIDIA GTX 960 and a laptop with RTX 2060 graphics card to implement and test a GPU accelerated Ray Tracer. This README describes the parts
 of the Ray Tracer that I accelerated. This was just taking my CPU implementation, which can be found on my profile, and adding cuda to it, with some small changes to the design.
 
 ### BVH Tree
@@ -56,7 +56,7 @@ Initial results show significant improvement over my CPU multi-threaded implemen
 
 ![alt_text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/teapotNoReflection.bmp)
 
-Teapot (1024 triangles) with no reflection rays, rendered in 17 frames/second on GPU vs 1.6 frames/second on CPU
+Teapot (1024 triangles) with no reflection rays, rendered in 17 frames/second on GTX 960 GPU vs. 40 frames/second on RTX 2060 vs. 1.6 frames/second on CPU.
 
 ### Future Improvements
 
