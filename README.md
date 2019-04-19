@@ -52,7 +52,7 @@ with the light information. When testing shadow rays, we call the same bvh trave
 
 ### Results
 
-Initial results show significant improvement over my CPU multi-threaded implementation. On a simple scene, it showed 3-4X improvement on the runtime. On the teapot scene it showed 5-10X speed up depending on the relfection options. More testing would need to be done to see how performance scales as more rays and more objects increases.
+Initial results show significant improvement over my CPU multi-threaded implementation. On a simple scene, it showed 3-4X improvement on the runtime. On the teapot scene it showed 5-10X speed up depending on the reflection options. More testing would need to be done to see how performance scales as more rays and more objects increases.
 
 ![alt_text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/teapotNoReflection.bmp)
 
