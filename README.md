@@ -1,7 +1,7 @@
 # CudaRayTracer
 GPU Accelerated Ray Tracer using CUDA and C++
 
-![alt_text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/teapotReflection.bmp)
+![](teapot.gif)
 
 1024 triangles, accelerated ray tracing on GPU with cuda
 
@@ -50,6 +50,7 @@ When we find an intersection, we make an intersection point with relevant inform
 From our Ray Intersection function we get a bunch of intersections we can calculating the shading value of. We just use phong shading
 with the light information. When testing shadow rays, we call the same bvh traversal device(GPU) function as we did with Ray Intersection.
 
+![alt_text](https://raw.githubusercontent.com/boonemiller/CudaRayTracer/master/teapotReflection.bmp)
 
 ### BVH Refitting and Rebuilding
 
@@ -61,7 +62,7 @@ In order to fix the bvh tree after so many frames. We completly free the origina
 
 I wanted to animte the raytracer. To do this I simply write all of the RGB values to a OpenGl texture and then render it as a texture onto 2 triangles in an OpenGl Contex.
 
-
+![](spheres.gif)
 
 ### Results
 
@@ -83,6 +84,6 @@ I tried doing Ray sorting on the CPU while the GPU is doing phong shading, but t
 
 Re-implement Area Lights- I implemented soft shadows using area lights on the CPU, but haven't extended it to my GPU implementation yet.  
 
-![](teapot.gif)
-![](spheres.gif)
+
+
 
