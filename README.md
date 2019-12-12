@@ -3,7 +3,7 @@ GPU Accelerated Ray Tracer using CUDA and C++
 
 ![](teapot.gif)
 
-1024 triangles, accelerated ray tracing on GPU with cuda. ~28 FPS
+1024 triangles, accelerated ray tracing on GPU with cuda. ~28 FPS (runs faster than what is shown, screen capture slows it down)
 
 ## Introduction
 
