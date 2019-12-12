@@ -32,5 +32,5 @@ public:
     int raytype;
 };
 
-void startRayTracing(float width, float height, float (&pixelcolorBuffer)[360][720][3],glm::vec3 cameraPosition, glm::vec3 cameraDirection, std::vector<SceneObject>& scene, std::vector<Light>& lights, Node* rootnode);
+void startRayTracing(float width, float height,  unsigned char*& pixelcolorBuffer,glm::vec3 cameraPosition, glm::vec3 cameraDirection, std::vector<SceneObject *>& scene, std::vector<Light>& lights, Node* rootnode);
 #endif /* Ray_hpp */

@@ -7,9 +7,12 @@
 //
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <vector>
+#include <deque>
 #include <iostream>
 #include "glm/glm/glm.hpp"
+#include "glm/glm/gtc/matrix_transform.hpp"
 #include "SceneObjects.hpp"
 #include "Ray.hpp"
 #include <math.h>
@@ -18,12 +21,213 @@
 #include <chrono>
 #include "bvh.hpp"
 #include "objloader.hpp"
+//#include <GL/freeglut.h>
+//#include <GL/gl.h>
+#include <GL/glew.h>
+#include <GLFW/glfw3.h>
+GLFWwindow* window;
+#include "Shader.hpp"
 
-int main(int argc, const char * argv[]) {
+
+
+void newBuild(Node*& cudaRoot, std::deque<Node *>& leafs,std::vector<SceneObject *>& scene){
+    cudaRoot->isleaf = false;
+    cudaRoot->maxX = std::numeric_limits<float>::min();
+    cudaRoot->minX = std::numeric_limits<float>::max();
+    cudaRoot->maxY = std::numeric_limits<float>::min();
+    cudaRoot->minY = std::numeric_limits<float>::max();;
+    cudaRoot->maxZ = std::numeric_limits<float>::min();
+    cudaRoot->minZ = std::numeric_limits<float>::max();;
+    
+    //creates world bounding box information, includes all the objects
+    for(SceneObject* obj: scene)
+    {
+        if(obj->sphere)
+        {
+            if(obj->position[0]-obj->radius < cudaRoot->minX)
+                cudaRoot->minX = obj->position[0]-obj->radius;
+            if(obj->position[1]-obj->radius < cudaRoot->minY)
+                cudaRoot->minY = obj->position[1]-obj->radius;
+            if(obj->position[2]-obj->radius < cudaRoot->minZ)
+                cudaRoot->minZ = obj->position[2]-obj->radius;
+        
+            if(obj->position[0]+obj->radius > cudaRoot->maxX)
+                cudaRoot->maxX = obj->position[0]+obj->radius;
+            if(obj->position[1]+obj->radius > cudaRoot->maxY)
+                cudaRoot->maxY = obj->position[1]+obj->radius;
+            if(obj->position[2]+obj->radius > cudaRoot->maxZ)
+                cudaRoot->maxZ = obj->position[2]+obj->radius;
+        }
+        else if(obj->triangle)
+        {
+            if(obj->v1[0] < cudaRoot->minX)
+                cudaRoot->minX = obj->v1[0];
+            if(obj->v1[1] < cudaRoot->minY)
+                cudaRoot->minY = obj->v1[1];
+            if(obj->v1[2] < cudaRoot->minZ)
+                cudaRoot->minZ = obj->v1[2];
+            
+            if(obj->v1[0] > cudaRoot->maxX)
+                cudaRoot->maxX = obj->v1[0];
+            if(obj->v1[1] > cudaRoot->maxY)
+                cudaRoot->maxY = obj->v1[1];
+            if(obj->v1[2] > cudaRoot->maxZ)
+                cudaRoot->maxZ = obj->v1[2];
+            
+            if(obj->v2[0] < cudaRoot->minX)
+                cudaRoot->minX = obj->v2[0];
+            if(obj->v2[1] < cudaRoot->minY)
+                cudaRoot->minY = obj->v2[1];
+            if(obj->v2[2] < cudaRoot->minZ)
+                cudaRoot->minZ = obj->v2[2];
+            
+            if(obj->v2[0] > cudaRoot->maxX)
+                cudaRoot->maxX = obj->v2[0];
+            if(obj->v2[1] > cudaRoot->maxY)
+                cudaRoot->maxY = obj->v2[1];
+            if(obj->v2[2] > cudaRoot->maxZ)
+                cudaRoot->maxZ = obj->v2[2];
+            
+            if(obj->v3[0] < cudaRoot->minX)
+                cudaRoot->minX = obj->v3[0];
+            if(obj->v3[1] < cudaRoot->minY)
+                cudaRoot->minY = obj->v3[1];
+            if(obj->v3[2] < cudaRoot->minZ)
+                cudaRoot->minZ = obj->v3[2];
+            
+            if(obj->v3[0] > cudaRoot->maxX)
+                cudaRoot->maxX = obj->v3[0];
+            if(obj->v3[1] > cudaRoot->maxY)
+                cudaRoot->maxY = obj->v3[1];
+            if(obj->v3[2] > cudaRoot->maxZ)
+                cudaRoot->maxZ = obj->v3[2];
+        }
+        
+    }
+   
+    if(cudaRoot->maxX-cudaRoot->minX > cudaRoot->maxY-cudaRoot->minY)
+    {
+        if(cudaRoot->maxX-cudaRoot->minX > cudaRoot->maxZ - cudaRoot->minZ)
+        {
+            cudaRoot->longestAxis = 0;
+            cudaRoot->midpoint = (cudaRoot->maxX+cudaRoot->minX)/2;
+        }
+    }
+    if(cudaRoot->maxY-cudaRoot->minY > cudaRoot->maxX-cudaRoot->minX)
+    {
+        if(cudaRoot->maxY-cudaRoot->minY > cudaRoot->maxZ-cudaRoot->minZ)
+        {
+            cudaRoot->longestAxis = 1;
+            cudaRoot->midpoint = (cudaRoot->maxY+cudaRoot->minY)/2;
+        }
+    }
+    if(cudaRoot->maxZ-cudaRoot->minZ > cudaRoot->maxX-cudaRoot->minX)
+    {
+        if(cudaRoot->maxZ-cudaRoot->minZ > cudaRoot->maxY-cudaRoot->minY)
+        {
+            cudaRoot->longestAxis = 2;
+            cudaRoot->midpoint = (cudaRoot->maxZ+cudaRoot->minZ)/2;
+        }
+    }
+    cudaRoot->parent = NULL;
+    cudaRoot->nodeNum = 0;
+    //printf("INSIDE HEREH\n");
+    constructTree(scene, cudaRoot, leafs, cudaRoot);
+}
+
+
+
+int main(int argc, char * argv[]) {
+ 	float width = 720;
+        float height = 360;
+	// Initialise GLFW
+	if( !glfwInit() )
+	{
+		fprintf( stderr, "Failed to initialize GLFW\n" );
+		return -1;
+	}
+
+	glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+	// Open a window and create its OpenGL context
+	window = glfwCreateWindow( width, height, "GPU Ray Tracer", NULL, NULL);
+	if( window == NULL ){
+		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
+		glfwTerminate();
+		return -1;
+	}
+	glfwMakeContextCurrent(window);
+
+	// Initialize GLEW
+	glewExperimental = true; // Needed for core profile
+	if (glewInit() != GLEW_OK) {
+		fprintf(stderr, "Failed to initialize GLEW\n");
+		return -1;
+	}
+
+	// Ensure we can capture the escape key being pressed below
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+
+	// Dark blue background
+	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+
+	// Enable depth test
+	glEnable(GL_DEPTH_TEST);
+	// Accept fragment if it closer to the camera than the former one
+	glDepthFunc(GL_LESS); 
+
+	GLuint VertexArrayID;
+	glGenVertexArrays(1, &VertexArrayID);
+	glBindVertexArray(VertexArrayID);
+
+	// Create and compile our GLSL program from the shaders
+	GLuint programID = LoadShaders( "VertexShader.vertexshader", "FragmentShader.fragmentshader" );
+
+
+	
+	//GLuint Texture = loadDDS("uvtemplate.DDS");
+	
+	// Get a handle for our "myTextureSampler" uniform
+	
+
+
+	static const GLfloat g_vertex_buffer_data[] = { 
+		-1.0f,-1.0f,0.0f,
+		-1.0f,1.0f,0.0f,
+		1.0f,-1.0f,0.0f,
+		-1.0f,1.0f,0.0f,
+		1.0f,1.0f,0.0f,
+		1.0f,-1.0f,0.0f
+	};
+
+	// Two UV coordinatesfor each vertex. They were created with Blender.
+	static const GLfloat g_uv_buffer_data[] = {
+		0.0f,0.0f,
+		0.0f,1.0f,
+		1.0f,0.0f,
+		0.0f,1.0f,
+		1.0f,1.0f,
+		1.0f,0.0f 
+		
+	};
+
+	GLuint vertexbuffer;
+	glGenBuffers(1, &vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+
+	GLuint uvbuffer;
+	glGenBuffers(1, &uvbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data, GL_STATIC_DRAW);
+
     //*******Manually describing scene************
-    float width = 720;
-    float height = 360;
-    std::vector<SceneObject> scene;
+    
+    std::vector<SceneObject *> scene;
     
     std::vector< glm::vec3 > vertices;
     std::vector< glm::vec2 > uvs;
@@ -31,92 +235,111 @@ int main(int argc, const char * argv[]) {
     bool res = loadOBJ("teapot3.obj", vertices, uvs, normals);
     for(int i = 0;i<3072;i+=3)
     {
-        SceneObject s1;
-        s1.objNum = i;
-        s1.radius = 0;
-        s1.ambient = glm::vec3(0,0,1);
-        s1.specular = glm::vec3(0.9,0.4,0);
-        s1.diffuse = glm::vec3(0.8,0.3,0.1);
-        s1.center = glm::vec3(0,0,0);
-        s1.position = s1.center;
+	SceneObject* s1;
+        cudaMallocManaged(&s1,sizeof(SceneObject));
+        s1->objNum = i;
+        s1->radius = 0;
+        s1->ambient = glm::vec3(0,0,1);
+        s1->specular = glm::vec3(0.9,0.4,0);
+        s1->diffuse = glm::vec3(0.8,0.3,0.1);
+        s1->center = glm::vec3(0,0,0);
+        s1->position = s1->center;
         
-        s1.v1 = vertices[i];
-        s1.v1Norm = glm::normalize(normals[i]);
-        s1.v2 = vertices[i+1];
-        s1.v2Norm = glm::normalize(normals[i+1]);
-        s1.v3 = vertices[i+2];
-        s1.v3Norm = glm::normalize(normals[i+2]);
-        s1.shininess = 64;
-        s1.reflective = glm::vec3(.5,.5,.5);
-        s1.triangle = true;
-        s1.sphere = false;
+        s1->v1 = vertices[i];
+        s1->v1Norm = glm::normalize(normals[i]);
+        s1->v2 = vertices[i+1];
+        s1->v2Norm = glm::normalize(normals[i+1]);
+        s1->v3 = vertices[i+2];
+        s1->v3Norm = glm::normalize(normals[i+2]);
+        s1->shininess = 64;
+        s1->reflective = glm::vec3(.5,.5,.5);
+        s1->triangle = true;
+        s1->sphere = false;
         
         scene.push_back(s1);
     }
 
-    /*SceneObject s1;
-    s1.objNum = 1;
-    s1.radius = 0;
-    s1.ambient = glm::vec3(0,0,1);
-    s1.specular = glm::vec3(0.9,0.4,0);
-    s1.diffuse = glm::vec3(0.8,0.3,0.1);
-    s1.center = glm::vec3(0,0,0);
-    s1.position = s1.center;
+    /*SceneObject* s1;
+    s1->objNum = 1;
+    s1->radius = 0;
+    s1->ambient = glm::vec3(0,0,1);
+    s1->specular = glm::vec3(0.9,0.4,0);
+    s1->diffuse = glm::vec3(0.8,0.3,0.1);
+    s1->center = glm::vec3(0,0,0);
+    s1->position = s1.center;
     
-    s1.v1 = glm::vec3(-2,0,0);
-    s1.v1Norm = glm::vec3(0,0,1);
-    s1.v2 = glm::vec3(0,2,0);
-    s1.v2Norm =  glm::vec3(0,0,1);
-    s1.v3 = glm::vec3(2,0,0);
-    s1.v3Norm =  glm::vec3(0,0,1);
+    s1->v1 = glm::vec3(-2,0,0);
+    s1->v1Norm = glm::vec3(0,0,1);
+    s1->v2 = glm::vec3(0,2,0);
+    s1->v2Norm =  glm::vec3(0,0,1);
+    s1->v3 = glm::vec3(2,0,0);
+    s1->v3Norm =  glm::vec3(0,0,1);
     //printf("%f %f %f\n",s1.v1Norm[0],s1.v1Norm[1],s1.v1Norm[2]);
     s1.shininess = 64;
     s1.reflective = glm::vec3(.5,.5,.5);
     s1.triangle = true;
     s1.sphere = false;
-    scene.push_back(s1)
+    scene.push_back(s1);*/
     
     
-    /*SceneObject s1;
-    s1.objNum = 0;
-    s1.radius = 1.0;
-    s1.ambient = glm::vec3(0,0,1);
-    s1.specular = glm::vec3(0.9,0.4,0);
-    s1.diffuse = glm::vec3(0.8,0.3,0.1);
-    s1.center = glm::vec3(-4,3,0);
-    s1.position = s1.center;
-    s1.shininess = 64;
-    s1.reflective = glm::vec3(.5,.5,.5);
-    s1.sphere = true;
-    scene.push_back(s1);
+    /*SceneObject* s1;
+    cudaMallocManaged(&s1,sizeof(SceneObject));
+    float r1 = -1 + ((float)rand()/(float)(RAND_MAX) * 2);
+    float r2 = -1 + ((float)rand()/(float)(RAND_MAX) * 2);
+    float r3 = -1 + ((float)rand()/(float)(RAND_MAX) * 2);
+    s1->direction = glm::normalize(glm::vec3(r1,r2,r3));
+    s1->speed = .01 + ((float)rand()/(float)(RAND_MAX) *.3);
+    s1->objNum = 0;
+    s1->radius = 2.0;
+    s1->ambient = glm::vec3(0,0,1);
+    s1->specular = glm::vec3(0.9,0.4,0);
+    s1->diffuse = glm::vec3(0.8,0.3,0.1);
+    s1->center = glm::vec3(-4,3,0);
+    s1->position = s1->center;
+    s1->shininess = 64;
+    s1->reflective = glm::vec3(.5,.5,.5);
+    s1->sphere = true;
+    scene.push_back(s1);*/
     
-    SceneObject s2;
-    s2.objNum = 1;
-    s2.radius = 1.5;
-    s2.ambient = glm::vec3(1.0,1,1);
-    s2.specular = glm::vec3(.5,.5,.5);
-    s2.diffuse = glm::vec3(1,1,1);
-    s2.center = glm::vec3(-2,0,0);
-    s2.position = s2.center;
-    s2.reflective = glm::vec3(.5,.5,.5);
-    s2.shininess = 64;
-    s2.sphere = true;
+    SceneObject* s2;
+    cudaMallocManaged(&s2,sizeof(SceneObject));
+    float r1 = -1 + ((float)rand()/(float)(RAND_MAX) * 2);
+    float r2 = -1 + ((float)rand()/(float)(RAND_MAX) * 2);
+    float r3 = -1 + ((float)rand()/(float)(RAND_MAX) * 2);
+    s2->direction = glm::vec3(r1,r2,r3);
+    s2->speed = .01 + ((float)rand()/(float)(RAND_MAX) *.3);
+    s2->objNum = 1;
+    s2->radius = 20;
+    s2->ambient = glm::vec3(1.0,1,1);
+    s2->specular = glm::vec3(.5,.5,.5);
+    s2->diffuse = glm::vec3(1,1,1);
+    s2->center = glm::vec3(-40,40,0);
+    s2->position = s2->center;
+    s2->reflective = glm::vec3(.5,.5,.5);
+    s2->shininess = 64;
+    s2->sphere = true;
     scene.push_back(s2);
     
-    SceneObject s3;
-    s3.objNum = 2;
-    s3.radius = 1;
-    s3.ambient = glm::vec3(1.0,1.0,0.0);
-    s3.specular = glm::vec3(.5,.5,.5);
-    s3.diffuse = glm::vec3(1,1,1);
-    s3.center = glm::vec3(1,0,3);
-    s3.position = s3.center;
-    s3.reflective = glm::vec3(.5,.5,.5);
-    s3.shininess = 64;
-    s3.sphere = true;
+    /*SceneObject* s3;
+    cudaMallocManaged(&s3,sizeof(SceneObject));
+    r1 = -1 + ((float)rand()/(float)(RAND_MAX) * 2);
+    r2 = -1 + ((float)rand()/(float)(RAND_MAX) * 2);
+    r3 = -1 + ((float)rand()/(float)(RAND_MAX) * 2);
+    s3->direction = glm::vec3(r1,r2,r3);
+    s3->speed = .01 + ((float)rand()/(float)(RAND_MAX) *.3);
+    s3->objNum = 2;
+    s3->radius = 2;
+    s3->ambient = glm::vec3(1.0,1.0,0.0);
+    s3->specular = glm::vec3(.5,.5,.5);
+    s3->diffuse = glm::vec3(1,1,1);
+    s3->center = glm::vec3(1,0,3);
+    s3->position = s3->center;
+    s3->reflective = glm::vec3(.5,.5,.5);
+    s3->shininess = 64;
+    s3->sphere = true;
     scene.push_back(s3);
     
-    SceneObject s4;
+    /*SceneObject s4;
     s4.objNum = 3;
     s4.radius = 1;
     s4.ambient = glm::vec3(1.0,1.0,0.0);
@@ -262,7 +485,7 @@ int main(int argc, const char * argv[]) {
     l3.color = glm::vec3(1,1,1);
     l3.point = false;
     l3.area = false;
-    //lights.push_back(l3);
+    lights.push_back(l3);
     
     //area light
     /*Light l4;
@@ -279,170 +502,150 @@ int main(int argc, const char * argv[]) {
 
     Node* cudaRoot;
     cudaMallocManaged(&cudaRoot,sizeof(Node));
-    cudaRoot->isleaf = false;
-    cudaRoot->maxX = std::numeric_limits<float>::min();
-    cudaRoot->minX = std::numeric_limits<float>::max();
-    cudaRoot->maxY = std::numeric_limits<float>::min();
-    cudaRoot->minY = std::numeric_limits<float>::max();;
-    cudaRoot->maxZ = std::numeric_limits<float>::min();
-    cudaRoot->minZ = std::numeric_limits<float>::max();;
-    
-    //creates world bounding box information, includes all the objects
-    for(SceneObject obj: scene)
-    {
-        if(obj.sphere)
-        {
-            if(obj.position[0]-obj.radius < cudaRoot->minX)
-                cudaRoot->minX = obj.position[0]-obj.radius;
-            if(obj.position[1]-obj.radius < cudaRoot->minY)
-                cudaRoot->minY = obj.position[1]-obj.radius;
-            if(obj.position[2]-obj.radius < cudaRoot->minZ)
-                cudaRoot->minZ = obj.position[2]-obj.radius;
-        
-            if(obj.position[0]+obj.radius > cudaRoot->maxX)
-                cudaRoot->maxX = obj.position[0]+obj.radius;
-            if(obj.position[1]+obj.radius > cudaRoot->maxY)
-                cudaRoot->maxY = obj.position[1]+obj.radius;
-            if(obj.position[2]+obj.radius > cudaRoot->maxZ)
-                cudaRoot->maxZ = obj.position[2]+obj.radius;
-        }
-        else if(obj.triangle)
-        {
-            if(obj.v1[0] < cudaRoot->minX)
-                cudaRoot->minX = obj.v1[0];
-            if(obj.v1[1] < cudaRoot->minY)
-                cudaRoot->minY = obj.v1[1];
-            if(obj.v1[2] < cudaRoot->minZ)
-                cudaRoot->minZ = obj.v1[2];
-            
-            if(obj.v1[0] > cudaRoot->maxX)
-                cudaRoot->maxX = obj.v1[0];
-            if(obj.v1[1] > cudaRoot->maxY)
-                cudaRoot->maxY = obj.v1[1];
-            if(obj.v1[2] > cudaRoot->maxZ)
-                cudaRoot->maxZ = obj.v1[2];
-            
-            if(obj.v2[0] < cudaRoot->minX)
-                cudaRoot->minX = obj.v2[0];
-            if(obj.v2[1] < cudaRoot->minY)
-                cudaRoot->minY = obj.v2[1];
-            if(obj.v2[2] < cudaRoot->minZ)
-                cudaRoot->minZ = obj.v2[2];
-            
-            if(obj.v2[0] > cudaRoot->maxX)
-                cudaRoot->maxX = obj.v2[0];
-            if(obj.v2[1] > cudaRoot->maxY)
-                cudaRoot->maxY = obj.v2[1];
-            if(obj.v2[2] > cudaRoot->maxZ)
-                cudaRoot->maxZ = obj.v2[2];
-            
-            if(obj.v3[0] < cudaRoot->minX)
-                cudaRoot->minX = obj.v3[0];
-            if(obj.v3[1] < cudaRoot->minY)
-                cudaRoot->minY = obj.v3[1];
-            if(obj.v3[2] < cudaRoot->minZ)
-                cudaRoot->minZ = obj.v3[2];
-            
-            if(obj.v3[0] > cudaRoot->maxX)
-                cudaRoot->maxX = obj.v3[0];
-            if(obj.v3[1] > cudaRoot->maxY)
-                cudaRoot->maxY = obj.v3[1];
-            if(obj.v3[2] > cudaRoot->maxZ)
-                cudaRoot->maxZ = obj.v3[2];
-        }
-        
-    }
-    
-    if(cudaRoot->maxX-cudaRoot->minX > cudaRoot->maxY-cudaRoot->minY)
-    {
-        if(cudaRoot->maxX-cudaRoot->minX > cudaRoot->maxZ - cudaRoot->minZ)
-        {
-            cudaRoot->longestAxis = 0;
-            cudaRoot->midpoint = (cudaRoot->maxX+cudaRoot->minX)/2;
-        }
-    }
-    if(cudaRoot->maxY-cudaRoot->minY > cudaRoot->maxX-cudaRoot->minX)
-    {
-        if(cudaRoot->maxY-cudaRoot->minY > cudaRoot->maxZ-cudaRoot->minZ)
-        {
-            cudaRoot->longestAxis = 1;
-            cudaRoot->midpoint = (cudaRoot->maxY+cudaRoot->minY)/2;
-        }
-    }
-    if(cudaRoot->maxZ-cudaRoot->minZ > cudaRoot->maxX-cudaRoot->minX)
-    {
-        if(cudaRoot->maxZ-cudaRoot->minZ > cudaRoot->maxY-cudaRoot->minY)
-        {
-            cudaRoot->longestAxis = 2;
-            cudaRoot->midpoint = (cudaRoot->maxZ+cudaRoot->minZ)/2;
-        }
-    }
-    glm::vec3 cameraPosition = glm::vec3(0,cudaRoot->maxY+20,cudaRoot->maxZ+200);
-    constructTree(scene, cudaRoot);
-    
-    
+    std::deque<Node *> leafs;
+    newBuild(cudaRoot,leafs,scene);
+
+    glm::vec3 cameraPosition = glm::vec3(0,50,250);
+   
     
     /*Writes pixel buffer to a .bmp file*/
-    {
-        int w = (int) width;
-        int h = (int) height;
-        
-        /*Declare pixel buffer and start ray tracing*/
-        uint8_t *pix;
-        pix = (uint8_t *)malloc(w*h*3 * sizeof(uint8_t));
-        memset(pix, 0xff, w*h*3);
-        float t = 0;
-        float buffer[360][720][3];
-        //auto start = std::chrono::high_resolution_clock::now();
-        startRayTracing(width, height, buffer, cameraPosition, cameraDirection, scene, lights, cudaRoot);
-        //auto stop = std::chrono::high_resolution_clock::now();
-        //auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        //t += duration.count();
-        
-        for(int i = 0; i<h; i++)
-        {
-            for(int j = 0;j<w;j++)
-            {
-                int elem = (i*w*3) + (j*3);
-                pix[elem+0] = (uint8_t) (buffer[i][j][0] * 255.0);
-                pix[elem+1] = (uint8_t) (buffer[i][j][1] * 255.0);
-                pix[elem+2] = (uint8_t) (buffer[i][j][2] * 255.0);
-                
-            }
+    unsigned char* buffer1;
+    buffer1 = (unsigned char *)malloc(259200 * 3 * sizeof(unsigned char));
+    uint8_t *pix;
+    pix = (uint8_t *)malloc(width*height*3 * sizeof(uint8_t));
+    memset(pix, 0xff, width*height*3);
+    int count = 0;
+    int direction = 1;
+    double lastTime = glfwGetTime();
+    int nbFrames = 0;
+    int curFrame = 0;
+    do{
+        // Measure speed
+        double currentTime = glfwGetTime();
+        nbFrames++;
+	curFrame++;
+        if ( currentTime - lastTime >= 1.0 ){ // If last prinf() was more than 1 sec ago
+          // printf and reset timer
+          printf("%f ms/frame %f FPS\n", 1000.0/double(nbFrames), 1000.0f/(1000.0/double(nbFrames)));
+          nbFrames = 0;
+          lastTime += 1.0;
         }
-        /*Denoising loop*/
-        t = 0;
-        for(int ii = 0; ii<20; ii++)
-        {
+	count++;
+	if(curFrame<20)        
+	   refitTree(leafs);
+	else{
+	   freeTree(cudaRoot);
+	   leafs.clear();
+	   cudaMallocManaged(&cudaRoot,sizeof(Node));
+	   newBuild(cudaRoot,leafs,scene);
+	}
+	startRayTracing(width, height, buffer1, cameraPosition, cameraDirection, scene, lights, cudaRoot);
+
             
-            float buffer1[360][720][3];
-            auto start = std::chrono::high_resolution_clock::now();
-            startRayTracing(width, height, buffer1, cameraPosition, cameraDirection, scene, lights, cudaRoot);
-            auto stop = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-            t += duration.count();
-            
-            for(int i = 0; i<h; i++)
-            {
-                for(int j = 0;j<w;j++)
-                {
-                    int elem = (i*w*3) + (j*3);
-                    pix[elem+0] = std::max(pix[elem+0], (uint8_t) (buffer1[i][j][0] * 255.0));
-                    pix[elem+1] = std::max(pix[elem+1], (uint8_t) (buffer1[i][j][1] * 255.0));
-                    pix[elem+2] = std::max(pix[elem+2], (uint8_t) (buffer1[i][j][2] * 255.0));
-                    buffer1[i][j][0]=0.0;
-                    buffer1[i][j][1]=0.0;
-                    buffer1[i][j][2]=0.0;
-                }
-            }
-            
-            
-        }
-        t = t/20;
-        std::cout << "AVG Trace Time: "
-        << t/1000000 << " seconds\n" << std::endl;
-        stbi_write_bmp("./fb.bmp", w, h, 3, pix);
-    }
-    
-    return 0;
+	for(SceneObject* s : scene)
+	{
+	    if(s->triangle)
+	    {
+	      glm::mat4 trans = glm::mat4(1.0);
+	      trans = glm::rotate(trans, 0.01f, glm::vec3(0.0f,1.0f,0.0f));
+	      s->v1 = glm::vec3(trans * glm::vec4(s->v1,1.0));
+	      s->v2 = glm::vec3(trans * glm::vec4(s->v2,1.0));
+	      s->v3 = glm::vec3(trans * glm::vec4(s->v3,1.0));
+	      s->v1Norm = glm::vec3(trans * glm::vec4(s->v1Norm,1.0));
+	      s->v2Norm = glm::vec3(trans * glm::vec4(s->v2Norm,1.0));
+	      s->v3Norm = glm::vec3(trans * glm::vec4(s->v3Norm,1.0));
+	    }
+	    if(s->sphere){
+	      if(s->position[0]+s->radius > 200.0f)
+		  s->direction = glm::reflect(s->direction,glm::vec3(-1,0,0));
+	      if(s->position[0]-s->radius < -200.0f)
+		  s->direction = glm::reflect(s->direction,glm::vec3(1,0,0));
+              if(s->position[1]+s->radius > 200.0f)
+		  s->direction = glm::reflect(s->direction,glm::vec3(0,-1,0));
+              if(s->position[1]-s->radius < -200.0f)
+		  s->direction = glm::reflect(s->direction,glm::vec3(0,1,0));
+              if(s->position[2]+s->radius > 300.0f)
+		  s->direction = glm::reflect(s->direction,glm::vec3(0,0,-1));
+              if(s->position[2]-s->radius < -300.0f)
+		  s->direction = glm::reflect(s->direction,glm::vec3(0,0,1));
+	      s->position += s->direction * s->speed * 8.0f;
+	    }
+	}
+        GLuint TextureIDs  = glGetUniformLocation(programID, "myTextureSampler");
+        // Clear the screen
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	// Use our shader
+	glUseProgram(programID);
+
+
+	// Bind our texture in Texture Unit 0
+	GLuint textureID;
+		
+	glGenTextures(1, &textureID);
+        glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, buffer1);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+	// ... which requires mipmaps. Generate them automatically.
+	glGenerateMipmap(GL_TEXTURE_2D);
+		
+	glActiveTexture(GL_TEXTURE0);
+
+	// Set our "myTextureSampler" sampler to use Texture Unit 0
+	glUniform1i(TextureIDs, 0);
+
+	// 1rst attribute buffer : vertices
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+	glVertexAttribPointer(
+		0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
+		3,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		0,                  // stride
+		(void*)0            // array buffer offset
+	);
+
+	// 2nd attribute buffer : UVs
+	glEnableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
+	glVertexAttribPointer(
+		1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
+		2,                                // size : U+V => 2
+		GL_FLOAT,                         // type
+		GL_FALSE,                         // normalized?
+		0,                                // stride
+		(void*)0                          // array buffer offset
+	);
+
+	// Draw the triangle !
+	glDrawArrays(GL_TRIANGLES, 0, 2*3); // 12*3 indices starting at 0 -> 12 triangles
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+
+	// Swap buffers
+	glfwSwapBuffers(window);
+	glfwPollEvents();
+
+	} // Check if the ESC key was pressed or the window was closed
+    while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
+		   glfwWindowShouldClose(window) == 0 );
+
+	// Cleanup VBO and shader
+	glDeleteBuffers(1, &vertexbuffer);
+	glDeleteBuffers(1, &uvbuffer);
+	glDeleteProgram(programID);
+	//glDeleteTextures(1, &Texture);
+	glDeleteVertexArrays(1, &VertexArrayID);
+
+	// Close OpenGL window and terminate GLFW
+	glfwTerminate();
+
+	return 0;
+
 }

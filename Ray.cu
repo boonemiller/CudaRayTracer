@@ -24,7 +24,7 @@
 
 float RAY_EPSILON = 0.000000001;
 int antialiasing = 0;
-int numBounces = 1;
+int numBounces = 2;
 int SampPerPix = 4;
 
 
@@ -106,8 +106,8 @@ __device__ bool intersectSphere(SceneObject& s, glm::vec3& position, glm::vec3& 
 {
     float RAY_EPSILON = 0.000000001;
     float a = glm::dot(direction, direction);
-    float b = 2 * glm::dot(direction,position-s.center);
-    float c = glm::dot(s.center,s.center) + glm::dot(position,position) + (-2 * glm::dot(s.center,position)) - pow(s.radius,2);
+    float b = 2 * glm::dot(direction,position-s.position);
+    float c = glm::dot(s.position,s.position) + glm::dot(position,position) + (-2 * glm::dot(s.position,position)) - pow(s.radius,2);
     
     float discriminant = b*b - 4*a*c;
     
@@ -133,7 +133,7 @@ __device__ bool intersectSphere(SceneObject& s, glm::vec3& position, glm::vec3& 
             }
                 
             intersection = position+t*direction;
-            normal = glm::normalize((intersection-s.center)/s.radius);
+            normal = glm::normalize((intersection-s.position)/s.radius);
             return true;
         }
     }
@@ -171,6 +171,7 @@ __device__ bool intersectTriangle(SceneObject& s, glm::vec3& position, glm::vec3
                 float u = 1.0f - v - w;
                 
                 n = glm::normalize(u*s.v1Norm+v*s.v2Norm+w*s.v3Norm);
+		//n = -normal;
                 intersection = intersect;
                 time = t;
                 return true;
@@ -188,36 +189,35 @@ __device__ void bvhTraverse(glm::vec3& position, glm::vec3& direction, Node* cur
         {
             for(int i = 0; i<currentNode->numObjs;i++)
             {
-                //SceneObject s = currentNode->objs[i];
-                if(currentNode->objs[i].sphere)
+                if(currentNode->objs[i]->sphere)
                 {
                     float iTime;
                     glm::vec3 normal;
                     glm::vec3 intersection;
-                    if(intersectSphere(currentNode->objs[i], position, direction, iTime, normal, intersection))
+                    if(intersectSphere(*currentNode->objs[i], position, direction, iTime, normal, intersection))
                     {
                         if(iTime<minT)
                         {
                             minTnormal = normal;
                             minTintersection = intersection;
-                            intersectObj = currentNode->objs[i];
+                            intersectObj = *currentNode->objs[i];
                             minT = iTime;
                             intersect = true;
                         }
                     }
                 }
-                else if(currentNode->objs[i].triangle)
+                else if(currentNode->objs[i]->triangle)
                 {
                     float intersectT;
                     glm::vec3 normal;
                     glm::vec3 intersection;
-                    if(intersectTriangle(currentNode->objs[i], position, direction, normal, intersection, intersectT))
+                    if(intersectTriangle(*currentNode->objs[i], position, direction, normal, intersection, intersectT))
                     {
                         if(intersectT<minT)
                         {
                             minTnormal = normal;
                             minTintersection = intersection;
-                            intersectObj = currentNode->objs[i];
+                            intersectObj = *currentNode->objs[i];
                             minT = intersectT;
                             intersect = true;
                         }
@@ -237,16 +237,19 @@ __device__ void bvhTraverse(glm::vec3& position, glm::vec3& direction, Node* cur
 
 __device__ bool wallIntersection(Isect& ipoint, Ray& r, Ray& reflect, Node* root)
 {
+    float x = 200.0f;
+    float y = 200.0f;
+    float z = 300.0f;
     glm::vec3 up = glm::vec3(0,1,0);
     float denom = glm::dot(up,r.direction);
     if(fabsf(denom) > .0001f)
     {
-        float t = glm::dot((glm::vec3(0,(root->minY)-2,0)-r.position),up)/denom;
+        float t = glm::dot((glm::vec3(0,-y,0)-r.position),up)/denom;
         if(t >= 0.0-.0001f)
         {
             glm::vec3 intersect = r.position+t*r.direction;
             
-            if(intersect[2]>root->minZ-8 && intersect[2]<root->maxZ+205 && intersect[0]>root->minX-6 && intersect[0] < root->maxX+6)
+            if(intersect[2]>-z && intersect[2]<z && intersect[0]>-x && intersect[0] < x)
             {
                 if(r.raytype == 0)
                 {
@@ -277,13 +280,13 @@ __device__ bool wallIntersection(Isect& ipoint, Ray& r, Ray& reflect, Node* root
     denom = glm::dot(up,r.direction);
     if(abs(denom) > .0001f)
     {
-        float t = glm::dot((glm::vec3(root->minX-6,0,0)-r.position),up)/denom;
+        float t = glm::dot((glm::vec3(-x,0,0)-r.position),up)/denom;
         if(t >= 0.0-.0001f)
         {
             glm::vec3 intersect = r.position+t*r.direction;
             
             
-            if(intersect[2]>root->minZ-8 && intersect[2]<root->maxZ+205 && intersect[1] < root->maxY+25 && intersect[1]>root->minY-2)
+            if(intersect[2]>-z && intersect[2]< z && intersect[1] < y && intersect[1] > -y)
             {
                 if(r.raytype == 0)
                 {
@@ -313,12 +316,12 @@ __device__ bool wallIntersection(Isect& ipoint, Ray& r, Ray& reflect, Node* root
     denom = glm::dot(up,r.direction);
     if(abs(denom) > .0001f)
     {
-        float t = glm::dot((glm::vec3(0,0,root->minZ-8)-r.position),up)/denom;
+        float t = glm::dot((glm::vec3(0,0,-z)-r.position),up)/denom;
         if(t >= 0.0-.0001f)
         {
             glm::vec3 intersect = r.position+t*r.direction;
             
-            if(intersect[0]>root->minX-6 && intersect[0] < root->maxX+6 && intersect[1] < root->maxY+25 && intersect[1] > root->minY-2 )
+            if(intersect[0] > -x && intersect[0] < x && intersect[1] < y && intersect[1] > -y )
             {
                 if(r.raytype == 0)
                 {
@@ -347,12 +350,12 @@ __device__ bool wallIntersection(Isect& ipoint, Ray& r, Ray& reflect, Node* root
     denom = glm::dot(up,r.direction);
     if(abs(denom) > .0001f)
     {
-        float t = glm::dot((glm::vec3(0,0,root->maxZ+205)-r.position),up)/denom;
+        float t = glm::dot((glm::vec3(0,0,z)-r.position),up)/denom;
         if(t >= 0.0-.0001f)
         {
             glm::vec3 intersect = r.position+t*r.direction;
             
-            if(intersect[0]>root->minX-6 && intersect[0] < root->maxX+6 && intersect[1] < root->maxY+25 && intersect[1] > root->minY-2 )
+            if(intersect[0] > -x && intersect[0] < x && intersect[1] < y && intersect[1] > -y )
             {
                 if(r.raytype == 0)
                 {
@@ -383,12 +386,12 @@ __device__ bool wallIntersection(Isect& ipoint, Ray& r, Ray& reflect, Node* root
     denom = glm::dot(up,r.direction);
     if(abs(denom) > .0001f)
     {
-        float t = glm::dot((glm::vec3(root->maxX+6,0,0)-r.position),up)/denom;
+        float t = glm::dot((glm::vec3(x,0,0)-r.position),up)/denom;
         if(t >= 0.0-.0001f)
         {
             glm::vec3 intersect = r.position+t*r.direction;
             
-            if(intersect[2]>root->minZ-8 && intersect[2]<root->maxZ+205 && intersect[1] < root->maxY+25 && intersect[1] > root->minY-2)
+            if(intersect[2]>-z && intersect[2]<z && intersect[1] < y && intersect[1] > -y)
             {
                 if(r.raytype == 0)
                 {
@@ -418,13 +421,13 @@ __device__ bool wallIntersection(Isect& ipoint, Ray& r, Ray& reflect, Node* root
     denom = glm::dot(up,r.direction);
     if(abs(denom) > .0001f)
     {
-        float t = glm::dot((glm::vec3(0,root->maxY+25,0)-r.position), up)/denom;
+        float t = glm::dot((glm::vec3(0,y,0)-r.position), up)/denom;
         if(t >= 0.0-.0001f)
         {
             glm::vec3 intersect = r.position+t*r.direction;
             
             
-            if(intersect[2]>root->minZ-8 && intersect[2]<root->maxZ+205 && intersect[0]>root->minX-6 && intersect[0] < root->maxX+6)
+            if(intersect[2] > -z && intersect[2] < z && intersect[0] > -x && intersect[0] < x)
             {
                 if(r.raytype == 0)
                 {
@@ -520,7 +523,7 @@ __global__ void RayIntersection(Ray* rays, int n, Ray* reflectedRays, Node* bvhh
             isectPoints[i].j = rays[i].j;
 
         }
-        if(reflectedRays[i].direction[0] <= 0.0f && reflectedRays[i].direction[1] >= 0.0f)
+        /*if(reflectedRays[i].direction[0] <= 0.0f && reflectedRays[i].direction[1] >= 0.0f)
         {
             atomicAdd(nw,1);
         }
@@ -535,7 +538,7 @@ __global__ void RayIntersection(Ray* rays, int n, Ray* reflectedRays, Node* bvhh
         else if(reflectedRays[i].direction[0] >= 0.0f && reflectedRays[i].direction[1] <= 0.0f)
         {
             atomicAdd(se,1);
-        }
+        }*/
     
     }
 }
@@ -639,8 +642,12 @@ __global__ void Shade(Isect* isectPoints, int n, Light* lights, int numlights, N
                 glm::vec3 minTintersection;
                 bool shadow = false;
                 
-
-                bvhTraverse(intersection,toLight,bvhhead,shadow,minT,intersectObj,minTnormal,minTintersection);
+		//check if light and surface normal are facing differnt directions
+		float dotP = glm::dot(reflectFromLight,normal);
+		if(dotP > -0.00001 )
+                   shadow = true;
+		else
+		    bvhTraverse(intersection,toLight,bvhhead,shadow,minT,intersectObj,minTnormal,minTintersection);
 
                 if(shadow)
                 {
@@ -655,7 +662,7 @@ __global__ void Shade(Isect* isectPoints, int n, Light* lights, int numlights, N
     }
 }
 
-void startRayTracing(float width, float height, float (&pixelcolorBuffer)[360][720][3],glm::vec3 cameraPosition, glm::vec3 cameraDirection, std::vector<SceneObject>& scene, std::vector<Light>& lights, Node* rootnode)
+void startRayTracing(float width, float height, unsigned char*& pixelcolorBuffer,glm::vec3 cameraPosition, glm::vec3 cameraDirection, std::vector<SceneObject*>& scene, std::vector<Light>& lights, Node* rootnode)
 {
 
     //set the stack size for threads
@@ -716,10 +723,11 @@ void startRayTracing(float width, float height, float (&pixelcolorBuffer)[360][7
     }
     for(int i = 0; i<totalRaysInSystem;i++)
     {
-        cpuisectPoints[i].color = glm::clamp(cpuisectPoints[i].color,glm::vec3(0,0,0),glm::vec3(1,1,1));
-        pixelcolorBuffer[359-cpuisectPoints[i].j][cpuisectPoints[i].i][0] += cpuisectPoints[i].color[0];
-        pixelcolorBuffer[359-cpuisectPoints[i].j][cpuisectPoints[i].i][1] += cpuisectPoints[i].color[1];
-        pixelcolorBuffer[359-cpuisectPoints[i].j][cpuisectPoints[i].i][2] += cpuisectPoints[i].color[2];
+	cpuisectPoints[i].color = cpuisectPoints[i].color*255.0f;
+        cpuisectPoints[i].color = glm::clamp(cpuisectPoints[i].color,glm::vec3(0.0f,0.0f,0.0f),glm::vec3(255.0f,255.0f,255.0f));
+        pixelcolorBuffer[i*3] = cpuisectPoints[i].color[2];
+	pixelcolorBuffer[i*3+1] = cpuisectPoints[i].color[1];
+	pixelcolorBuffer[i*3+2] = cpuisectPoints[i].color[0];
     }
     cudaFree(cudarays);
     cudaFree(reflectedRays);

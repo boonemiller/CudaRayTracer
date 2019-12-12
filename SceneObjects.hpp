@@ -36,6 +36,8 @@ public:
     glm::vec3 diffuse;
     glm::vec3 specular;
     glm::vec3 reflective;
+    glm::vec3 direction;
+    float speed;
     float radius;
     glm::vec3 center;
     float shininess;
