@@ -69,3 +69,6 @@ Find something for the CPU to do- right now all of the work is being done on the
 I tried doing Ray sorting on the CPU while the GPU is doing phong shading, but the GPU returned faster than the CPU could finish sorting, resulting is slower overall execution. 
 
 Re-implement Area Lights- I implemented soft shadows using area lights on the CPU, but haven't extended it to my GPU implementation yet.  
+
+
+![](spheres.webm)
