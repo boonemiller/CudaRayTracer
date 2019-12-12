@@ -3,7 +3,7 @@ GPU Accelerated Ray Tracer using CUDA and C++
 
 ![](teapot.gif)
 
-1024 triangles, accelerated ray tracing on GPU with cuda
+1024 triangles, accelerated ray tracing on GPU with cuda. ~28 FPS
 
 ## Introduction
 
@@ -54,15 +54,17 @@ with the light information. When testing shadow rays, we call the same bvh trave
 
 ### BVH Refitting and Rebuilding
 
-In order to animate the raytracer, we need to refit the BVH anytime any geometry in the scene moves. We refit the BVH tree from the bottom of the tree up every frame, resulting in all of the geometry staying in the same leafs but the bounding boxes move. Now potentially overlapping more. This constant refitting degrades the quality of the BVH tree, resulting in worse perfomance if we never rebuild.
+In order to animate the ray tracer, we need to refit the BVH anytime any geometry in the scene moves. We refit the BVH tree from the bottom of the tree up every frame, resulting in all of the geometry staying in the same leafs but the bounding boxes move. Now potentially overlapping more. This constant refitting degrades the quality of the BVH tree, resulting in worse performance if we never rebuild.
 
-In order to fix the bvh tree after so many frames. We completly free the original tree and rebuild from scratch. I picked to rebuild the tree every 20 frames.
+In order to fix the BVH tree after so many frames. We completely free the original tree and rebuild from scratch. I picked to rebuild the tree every 20 frames.
 
 ### OpenGl Animation
 
-I wanted to animte the raytracer. To do this I simply write all of the RGB values to a OpenGl texture and then render it as a texture onto 2 triangles in an OpenGl Contex.
+I wanted to animate the ray tracer. To do this I simply write all of the RGB values to a OpenGl texture and then render it as a texture onto 2 triangles in an OpenGl Context.
 
 ![](spheres.gif)
+
+~46 FPS
 
 ### Results
 
