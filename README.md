@@ -64,7 +64,7 @@ I wanted to animate the ray tracer. To do this I simply write all of the RGB val
 
 ![](spheres.gif)
 
-~46 FPS
+~46 FPS (runs faster than what is shown, screen capture slows it down)
 
 ### Results
 
