@@ -71,4 +71,4 @@ I tried doing Ray sorting on the CPU while the GPU is doing phong shading, but t
 Re-implement Area Lights- I implemented soft shadows using area lights on the CPU, but haven't extended it to my GPU implementation yet.  
 
 
-![](Teapot.webm)
+![](Teapot.gif)
