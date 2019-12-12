@@ -50,6 +50,19 @@ When we find an intersection, we make an intersection point with relevant inform
 From our Ray Intersection function we get a bunch of intersections we can calculating the shading value of. We just use phong shading
 with the light information. When testing shadow rays, we call the same bvh traversal device(GPU) function as we did with Ray Intersection.
 
+
+### BVH Refitting and Rebuilding
+
+In order to animate the raytracer, we need to refit the BVH anytime any geometry in the scene moves. We refit the BVH tree from the bottom of the tree up every frame, resulting in all of the geometry staying in the same leafs but the bounding boxes move. Now potentially overlapping more. This constant refitting degrades the quality of the BVH tree, resulting in worse perfomance if we never rebuild.
+
+In order to fix the bvh tree after so many frames. We completly free the original tree and rebuild from scratch. I picked to rebuild the tree every 20 frames.
+
+### OpenGl Animation
+
+I wanted to animte the raytracer. To do this I simply write all of the RGB values to a OpenGl texture and then render it as a texture onto 2 triangles in an OpenGl Contex.
+
+
+
 ### Results
 
 Initial results show significant improvement over my CPU multi-threaded implementation. On a simple scene, it showed 3-4X improvement on the runtime. On the teapot scene it showed 5-10X speed up depending on the reflection options. More testing would need to be done to see how performance scales as more rays and more objects increases.
@@ -71,4 +84,5 @@ I tried doing Ray sorting on the CPU while the GPU is doing phong shading, but t
 Re-implement Area Lights- I implemented soft shadows using area lights on the CPU, but haven't extended it to my GPU implementation yet.  
 
 ![](teapot.gif)
+![](spheres.gif)
 
