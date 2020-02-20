@@ -76,8 +76,6 @@ Teapot (1024 triangles) with no reflection rays, rendered in 17 frames/second on
 
 ### Future Improvements
 
-Shared Memory- Try to bring the memory closer to the processing by using shared memory
-
 Ray Sorting- GPU caches are small, so ray sorting would possibly increase cache hits by processing rays sequentially that might access
 the same parts of the bvh tree. So possibly the scene objects would already be in the cache.
 
